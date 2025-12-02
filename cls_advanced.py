@@ -1,0 +1,87 @@
+from fastapi import FastAPI
+import asyncio
+import uvicorn
+from typing import Mapping, Any
+
+class AppDependencies(Mapping):
+    def __init__(self, /, **kwargs: Any):
+        self.db: str = ""
+        self.cache: str = ""
+        self.settings: dict = {}
+        self.__dict__.update(kwargs)
+
+    def __getitem__(self, item):
+        return self.__dict__[item]
+
+    def __iter__(self):
+        return self.__dict__.__iter__()
+
+    def __len__(self):
+        return self.__dict__.__len__()
+
+
+class MyInitializer:
+    def __init__(self, app: FastAPI):
+        self.app = app
+        self.deps = AppDependencies()
+
+    async def _setup_db(self):
+        # Giả lập khởi tạo database connection
+        print("Setting up database...")
+        await asyncio.sleep(1)
+        return "DatabaseConnection"
+    
+    async def _setup_cache(self):
+        # Giả lập khởi tạo cache connection
+        print("Setting up cache...")
+        await asyncio.sleep(1)
+        return "CacheConnection"
+    
+    def _load_settings(self):
+        # Giả lập load settings
+        print("Loading settings...")
+        return {"debug": True, "version": "1.0.0"}
+    
+    async def __aenter__(self):
+        # Khởi tạo dependencies
+        self.deps.db = await self._setup_db()
+        self.deps.cache = await self._setup_cache()
+        self.deps.settings = self._load_settings()
+        
+        # Gán vào app.state
+        self.app.state.dependencies = self.deps
+        
+        # Cũng có thể gán riêng lẻ
+        self.app.state.db = self.deps.db
+        self.app.state.cache = self.deps.cache
+        
+        return self.deps
+    
+    async def _cleanup(self):
+        # Giả lập dọn dẹp resources
+        print("Cleaning up resources...")
+        await asyncio.sleep(1)
+        print("Resources cleaned up.")
+
+    async def __aexit__(self, *args):
+        await self._cleanup()
+
+app = FastAPI(lifespan=MyInitializer)
+
+# State của Request được gán vào lúc nào?
+# TODO: Thử nghiệm với dependencies trong route và kiểm tra Request.state
+@app.get("/")
+async def root():
+    deps: AppDependencies = app.state.dependencies
+    return {
+        "db": deps.db,
+        "cache": deps.cache,
+        "settings": deps.settings,
+        "state": {
+            "db": app.state.db,
+            "cache": app.state.cache,
+        }
+    }
+
+if __name__ == "__main__":
+    uvicorn.run( app, host="127.0.0.1", port=8000)
