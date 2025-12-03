@@ -68,8 +68,6 @@ class MyInitializer:
 
 app = FastAPI(lifespan=MyInitializer)
 
-# State của Request được gán vào lúc nào?
-# TODO: Thử nghiệm với dependencies trong route và kiểm tra Request.state
 @app.get("/")
 async def root():
     deps: AppDependencies = app.state.dependencies
