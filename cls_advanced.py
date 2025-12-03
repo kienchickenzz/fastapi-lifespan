@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 import asyncio
 import uvicorn
 from typing import Mapping, Any
@@ -81,6 +81,13 @@ async def root():
             "db": app.state.db,
             "cache": app.state.cache,
         }
+    }
+
+@app.get("/test")
+async def test_request_state(request: Request):
+    return {
+        "request_state": request.state,
+        "request_state_state": request.state._state, 
     }
 
 if __name__ == "__main__":
