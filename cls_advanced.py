@@ -32,13 +32,6 @@ class MyInitializer:
     async def __aenter__(self):
         # Khởi tạo dependencies
         self.deps.db = await self._setup_db()
-        
-        # Gán vào app.state
-        self.app.state.dependencies = self.deps
-        
-        # Cũng có thể gán riêng lẻ
-        self.app.state.db = self.deps.db
-        
         return self.deps
     
     async def _cleanup(self):
@@ -51,16 +44,6 @@ class MyInitializer:
         await self._cleanup()
 
 app = FastAPI(lifespan=MyInitializer)
-
-@app.get("/")
-async def root():
-    deps = app.state._state.get("dependencies")
-    return {
-        "db": deps.db,
-        "state": {
-            "db": app.state.db,
-        }
-    }
 
 @app.get("/test")
 async def test_request_state(request: Request):
