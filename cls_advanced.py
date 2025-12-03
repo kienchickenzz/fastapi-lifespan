@@ -6,8 +6,6 @@ from typing import Mapping, Any
 class AppDependencies(Mapping):
     def __init__(self, /, **kwargs: Any):
         self.db: str = ""
-        self.cache: str = ""
-        self.settings: dict = {}
         self.__dict__.update(kwargs)
 
     def __getitem__(self, item):
@@ -31,29 +29,15 @@ class MyInitializer:
         await asyncio.sleep(1)
         return "DatabaseConnection"
     
-    async def _setup_cache(self):
-        # Giả lập khởi tạo cache connection
-        print("Setting up cache...")
-        await asyncio.sleep(1)
-        return "CacheConnection"
-    
-    def _load_settings(self):
-        # Giả lập load settings
-        print("Loading settings...")
-        return {"debug": True, "version": "1.0.0"}
-    
     async def __aenter__(self):
         # Khởi tạo dependencies
         self.deps.db = await self._setup_db()
-        self.deps.cache = await self._setup_cache()
-        self.deps.settings = self._load_settings()
         
         # Gán vào app.state
         self.app.state.dependencies = self.deps
         
         # Cũng có thể gán riêng lẻ
         self.app.state.db = self.deps.db
-        self.app.state.cache = self.deps.cache
         
         return self.deps
     
@@ -70,20 +54,19 @@ app = FastAPI(lifespan=MyInitializer)
 
 @app.get("/")
 async def root():
-    deps: AppDependencies = app.state.dependencies
+    deps = app.state._state.get("dependencies")
     return {
         "db": deps.db,
-        "cache": deps.cache,
-        "settings": deps.settings,
         "state": {
             "db": app.state.db,
-            "cache": app.state.cache,
         }
     }
 
 @app.get("/test")
 async def test_request_state(request: Request):
     return {
+        "app_state": app.state,
+        "app_state_state": app.state._state,
         "request_state": request.state,
         "request_state_state": request.state._state, 
     }
